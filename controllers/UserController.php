@@ -101,6 +101,11 @@
 			$this->view->title = 'Log in and TASTE THE BEAST';
 		}
 		
+		public function logout() {
+			session_destroy();
+			$this->redirect();
+		}
+		
 		public function redirect($url = false) {
 			if ($url) {
 				header("Location: " . $url);
