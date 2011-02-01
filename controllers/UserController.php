@@ -9,14 +9,7 @@
 			$user = new User($this->registry);
 			$game = new Game($this->registry);
 			if ($username) {
-				$details = is_numeric($username) ? $user->getUserById($username) : $user->getUser($username);
-				if (!empty($details)) {
-					$this->view->showOne = true;
-					$this->view->username = $details['username'];
-					$this->view->games = $game->getAllGamesByUser($details['id']);
-					$this->view->email = $details['email'];
-					$this->view->title = 'Tecmo Superstar: ' . $details['username'];
-				}
+				$this->stats($username);
 			} else {
 				$users = $user->getUsers();
 				$this->view->users = $users;
@@ -136,6 +129,53 @@
 			}
 			$this->template = 'user/reset';
 			$this->view->title = 'Reset your password';
+		}
+		
+		public function stats($username) {
+			$this->template = 'user/stats';
+			$game = new Game($this->registry);
+			$user = new User($this->registry);
+			$details = is_numeric($username) ? $user->getUserById($username) : $user->getUser($username);
+			if (!empty($details)) {
+				$games = $game->getAllGamesByUser($details['id']);
+				$this->view->username = $details['username'];
+				$this->view->title = 'Tecmo Superstar: ' . $details['username'];
+				$totals = array();
+				$totals['q1'] = 0;
+				$totals['q2'] = 0;
+				$totals['q3'] = 0;
+				$totals['q4'] = 0;
+				$totals['total'] = 0;
+				$totals['rush_att'] = 0;
+				$totals['rush_yards'] = 0;
+				$totals['pass_yards'] = 0;
+				$totals['first_downs'] = 0;
+				$teams = array();
+				$opp = array();
+				foreach ($games as $g) {
+					$side = ($g['home_user'] == $details['id']) ? 'home_' : 'away_';
+					$totals['q1'] += $g[$side.'q1_score'];
+					$totals['q2'] += $g[$side.'q2_score'];
+					$totals['q3'] += $g[$side.'q3_score'];
+					$totals['q4'] += $g[$side.'q4_score'];
+					$totals['total'] += $g[$side.'total_score'];
+					$totals['rush_att'] += $g[$side.'rush_att'];
+					$totals['rush_yards'] += $g[$side.'rush_yards'];
+					$totals['pass_yards'] += $g[$side.'pass_yards'];
+					$totals['first_downs'] += $g[$side.'first_downs'];
+					$teams[] = $g[$side.'team'];
+					$opp[] = ($side == 'home_') ? $g['away_user'] : $g['home_user'];
+				}
+				$sortedTeams = array_count_values($teams);
+				$sortedOpp = array_count_values($opp);
+				$oppId = array_pop(array_keys($sortedOpp));
+				$rival = $user->getUserById($oppId);
+				$this->view->rival = $rival['username'];
+				$this->view->mostUsedTeam = array_pop(array_keys($sortedTeams));
+				$this->view->totals = $totals;
+				$this->view->div = count($games);
+			}
+			
 		}
 	}
 ?>

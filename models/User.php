@@ -203,19 +203,5 @@
 			// return the password
 			return $password;
 		}
-		
-		public function createUsersTable(){
-			$this->db->Execute("DROP TABLE IF EXISTS ". self::USERS_TABLE .";");
-			$this->db->Execute("
-				CREATE TABLE IF NOT EXISTS `". self::USERS_TABLE ."` (
-				  `". self::USER_ID . "` int(10) NOT NULL AUTO_INCREMENT,
-				  `". self::USER_EMAIL ."` text NOT NULL,
-				  `". self::USER_PASSWORD ."` varchar(1000) NOT NULL,
-				  `". self::USER_NAME ."` varchar(15) NOT NULL,
-				  `". self::USER_TYPE ."` int(1) NOT NULL,
-				  PRIMARY KEY (`". self::USER_ID ."`)
-				) ENGINE=MyISAM AUTO_INCREMENT=1;
-			");
-		}
 	}
 ?>

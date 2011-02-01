@@ -1,4 +1,5 @@
 <?php
+	$ADODB_CACHE_DIR = SITE_PATH . '/adodb5/cache';
 	require_once(SITE_PATH . '/adodb5/adodb.inc.php');
 	 // autoload classes
 	 function __autoload($className) {

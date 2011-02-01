@@ -1,4 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project-private xmlns="http://www.netbeans.org/ns/project-private/1">
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/1"/>
+    <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/1">
+        <file>file:/C:/Users/Nikos/Projects/UniServer/www/tecmo/index.php</file>
+        <file>file:/C:/Users/Nikos/Projects/UniServer/www/tecmo/templates/game/add.php</file>
+        <file>file:/C:/Users/Nikos/Projects/UniServer/www/tecmo/models/Game.php</file>
+        <file>file:/C:/Users/Nikos/Projects/UniServer/www/tecmo/templates/common/header.php</file>
+        <file>file:/C:/Users/Nikos/Projects/UniServer/www/tecmo/controllers/GameController.php</file>
+        <file>file:/C:/Users/Nikos/Projects/UniServer/www/tecmo/models/User.php</file>
+        <file>file:/C:/Users/Nikos/Projects/UniServer/www/tecmo/templates/game/view.php</file>
+        <file>file:/C:/Users/Nikos/Projects/UniServer/www/tecmo/models/Player.php</file>
+    </open-files>
 </project-private>
