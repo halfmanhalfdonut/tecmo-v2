@@ -2,11 +2,12 @@
 	define('PARANOIA', 17);
 	
 	class User {
-		const USERS_TABLE 		= 'users';
+		const USER_ID			= 'id';
+		const USERS_TABLE		= 'users';
 		const USER_EMAIL			= 'email';
 		const USER_PASSWORD	= 'password';
-		const USER_NAME 			= 'username';
-		const USER_TYPE 			= 'role'; //either 1 for admin OR 0 for users (defaults to 0)
+		const USER_NAME			= 'username';
+		const USER_TYPE			= 'role'; //either 1 for admin OR 0 for users (defaults to 0)
 	
 		private $db = false;
 		
@@ -15,24 +16,24 @@
 			//$this->db->debug = true;
 		}
 		//Reset user password - mail random 10 char string
-		public function resetPassword($username){
+		public function resetPassword($email){
 			//valid user
-			if($this->db->GetOne('SELECT COUNT(*) FROM `'. self::USERS_TABLE .'` WHERE `'. self::USER_NAME .'` = ? ',$username) == 1)
+			if($this->db->GetOne('SELECT COUNT(*) FROM `'. self::USERS_TABLE .'` WHERE `'. self::USER_EMAIL .'` = ? ',$email) == 1)
 			{
-				$chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"; 
-				for($x = 0; $x<10; $x++)
-				{
-					$tempPassword.=substr($chars,rand(0,58),1);
+				$chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$"; 
+				$tempPassword = '';
+				for($x = 0; $x<10; $x++) {
+					$tempPassword.=substr($chars,rand(0,59),1);
 				}
-				mail('john@geared.us', 'TSB Password Reset', 'Your new TSB League password is: '.$tempPassword);
-				$tempMsg = $tempPassword; //testing delete in production
+				$newPassword = $tempPassword;
 				$tempPassword = $this->saltPassword($tempPassword);
 				//update db with new password
-				$this->db->Execute('UPDATE '. self::USERS_TABLE .' SET password = ?', $tempPassword .' WHERE '. self::USER_NAME .' = ?', $username);
+				$this->db->Execute('UPDATE '. self::USERS_TABLE .' SET password = ? WHERE '. self::USER_EMAIL .' = ?', array($tempPassword, $email));
+				mail($email, 'TSB Password Reset', 'Your new TSB League password is: '.$newPassword);
 				//email password --- needs to be completed with actual user pasword!!!!!
-				return "You will receive an email shortly. ".$tempMsg;
+				return true;
 			}		
-			return "User not found.";
+			return false;
 		}
 		public function changeUserType($username,$newType){
 			$acceptableTypeValues = array(1,0);
@@ -56,19 +57,24 @@
 		}
 		
 		public function login($username,$password){
-			//load user info
-			$userDetails = $this->db->GetRow('SELECT * FROM `'. self::USERS_TABLE .'` WHERE `'. self::USER_NAME .'` = ? 
-				AND '. self::USER_PASSWORD .' = ? ',array($username,$this->saltPassword($password)));
-			
-			//make sure there was a user with provided username and password
-			if(!empty($userDetails)){
-				//set session info to match user info
-				$_SESSION['userType'] = ($userDetails[self::USER_TYPE]  == 1? 'admin' : 'user');
-				$_SESSION['userName'] = $userDetails[self::USER_NAME];
-				$_SESSION['loggedIn'] = true;
-				return true;
+			if ($this->checkLoginInfo($username, $password)) {
+				//load user info
+				$userDetails = $this->db->GetRow('SELECT * FROM `'. self::USERS_TABLE .'` WHERE `'. self::USER_NAME .'` = ? 
+					AND '. self::USER_PASSWORD .' = ? ',array($username,$this->saltPassword($password)));
+
+				//make sure there was a user with provided username and password
+				if(!empty($userDetails)){
+					//set session info to match user info
+					$_SESSION['id'] = $userDetails[self::USER_ID];
+					$_SESSION['userType'] = ($userDetails[self::USER_TYPE]  == 1? 'admin' : 'user');
+					$_SESSION['userName'] = $userDetails[self::USER_NAME];
+					$_SESSION['loggedIn'] = true;
+					return true;
+				} else {
+					//user does not exist
+					return false;
+				}
 			} else {
-				//user does not exist
 				return false;
 			}
 		}
@@ -81,6 +87,10 @@
 			foreach($deleteNames as $username){
 				$this->db->Execute('DELETE FROM '. self::USERS_TABLE .' WHERE '. self::USER_NAME .' = ?',array($username));				
 			}
+		}
+		
+		public function userId() {
+			return $_SESSION['id'];
 		}
 		
 		public function isAdmin(){
@@ -154,8 +164,20 @@
 		}
 		
 		public function getUsers(){
-			//return all users ordered by user id
-			return $this->db->GetAll('SELECT * FROM '. self::USERS_TABLE .' WHERE 1 ORDER BY '. self::USER_NAME .' ASC ');
+			//return all users ordered by username
+			return $this->db->GetAll('SELECT  '. self::USER_ID . ',' . self::USER_NAME . ','. self::USER_EMAIL .' FROM '. self::USERS_TABLE .' WHERE 1 ORDER BY '. self::USER_NAME .' ASC ');
+		}
+		
+		public function getUser($username) {
+			return $this->db->GetRow('SELECT '. self::USER_ID . ',' . self::USER_NAME . ','. self::USER_EMAIL .' FROM ' . self::USERS_TABLE . ' WHERE ' . self::USER_NAME . '=?', $username);
+		}
+		
+		public function getUserById($id) {
+			return $this->db->GetRow('SELECT '. self::USER_ID . ',' . self::USER_NAME . ','. self::USER_EMAIL .' FROM ' . self::USERS_TABLE . ' WHERE ' . self::USER_ID . '=?', $id);
+		}
+		
+		public function getOtherUsers($username) {
+			return $this->db->GetAll('SELECT  '. self::USER_ID . ',' . self::USER_NAME . ','. self::USER_EMAIL .' FROM '. self::USERS_TABLE .' WHERE '. self::USER_NAME .'<>? ORDER BY '. self::USER_NAME .' ASC ', $username);
 		}
 		
 		private function saveUser($email,$password,$username){
@@ -186,12 +208,13 @@
 			$this->db->Execute("DROP TABLE IF EXISTS ". self::USERS_TABLE .";");
 			$this->db->Execute("
 				CREATE TABLE IF NOT EXISTS `". self::USERS_TABLE ."` (
+				  `". self::USER_ID . "` int(10) NOT NULL AUTO_INCREMENT,
 				  `". self::USER_EMAIL ."` text NOT NULL,
 				  `". self::USER_PASSWORD ."` varchar(1000) NOT NULL,
 				  `". self::USER_NAME ."` varchar(15) NOT NULL,
 				  `". self::USER_TYPE ."` int(1) NOT NULL,
-				  PRIMARY KEY (`". self::USER_NAME ."`)
-				) ENGINE=MyISAM;
+				  PRIMARY KEY (`". self::USER_ID ."`)
+				) ENGINE=MyISAM AUTO_INCREMENT=1;
 			");
 		}
 	}

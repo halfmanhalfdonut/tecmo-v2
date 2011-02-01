@@ -21,4 +21,5 @@
 		</ul>
 		<input type="submit" value="Log in!" class="submit" />
 	</form>	
+	<a href="/tecmo/user/reset">Forgot your password?</a>
 </fieldset>

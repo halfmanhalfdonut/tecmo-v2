@@ -1,10 +1,26 @@
 <?php
-	class UserController extends BaseUserController {
+	class UserController extends BaseController {
 		private $errors = array();
 		
-		public function index($user = false) {
-			$this->template = 'user';
-			$this->view->title = 'BAMBOO WOMBAT';
+		public function index($username = false) {
+			$this->template = 'user/list';
+			$this->view->title = 'Tecmo Superstars';
+			$this->view->showOne = false;
+			$user = new User($this->registry);
+			$game = new Game($this->registry);
+			if ($username) {
+				$details = is_numeric($username) ? $user->getUserById($username) : $user->getUser($username);
+				if (!empty($details)) {
+					$this->view->showOne = true;
+					$this->view->username = $details['username'];
+					$this->view->games = $game->getAllGamesByUser($details['id']);
+					$this->view->email = $details['email'];
+					$this->view->title = 'Tecmo Superstar: ' . $details['username'];
+				}
+			} else {
+				$users = $user->getUsers();
+				$this->view->users = $users;
+			}
 		}
 		
 		public function register() {
@@ -56,7 +72,7 @@
 						$createStatus = $user->createUser($email1,$pass1,$username);
 						if ($createStatus == true) {
 							if ($user->login($username,$pass1)) {
-								$this->redirect();
+								Http::redirect();
 							}
 						} else {
 							$this->errors[]= $createStatus;
@@ -78,17 +94,14 @@
 				$password = $_POST['password'];
 				if(!empty($username) && !empty($password)) {
 					$user = new User($this->registry);
-					if($user->checkLoginInfo($username,$password)){
-						//login user
-						if ($user->login($username,$password)){
-							$this->redirect();
+					if ($user->login($username,$password)){
+						if (isset($_GET['ref'])) {
+							Http::redirect($_GET['ref']);
+						} else {
+							Http::redirect();
 						}
-						else{
-							$this->errors[]= 'LOGIN FAILED!'; //this would be strange, but hey...
-						}
-					}
-					else{
-							$this->errors[]= 'LOGIN FAILED! - Supplied Username and Password did not match any registered user!';
+					} else {
+						$this->errors[]= 'Invalid Username and/or Password.';
 					}
 				}
 
@@ -103,15 +116,26 @@
 		
 		public function logout() {
 			session_destroy();
-			$this->redirect();
+			Http::redirect();
 		}
 		
-		public function redirect($url = false) {
-			if ($url) {
-				header("Location: " . $url);
-			} else {
-				header("Location: " . ENV);
+		public function reset() {
+			$reset = isset($_POST['email']) ? true : false;
+		
+			if ($reset) {
+				$email = $_POST['email'];
+				if (!empty($email)) {
+					$user = new User($this->registry);
+					if ($user->resetPassword($email)) {
+						$this->view->success = true;
+					} else {
+						$this->view->success = false;
+					}
+					$this->view->email = $email;
+				}
 			}
+			$this->template = 'user/reset';
+			$this->view->title = 'Reset your password';
 		}
 	}
 ?>
